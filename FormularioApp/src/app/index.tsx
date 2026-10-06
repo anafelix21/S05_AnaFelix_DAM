@@ -1,750 +1,701 @@
-import { useState } from 'react';
-
+import React, { useState } from 'react';
 import {
-  View,
-  Text,
   StyleSheet,
+  Text,
+  View,
+  TextInput,
+  Pressable,
   ScrollView,
+  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
 
-import { AppInput } from '../components/common/app-input';
-import { AppButton } from '../components/common/app-button';
+const CATEGORIAS = [
+  { id: '1', nombre: 'Pasteles y Tortas', icon: '🎂' },
+  { id: '2', nombre: 'Cupcakes y Muffins', icon: '🧁' },
+  { id: '3', nombre: 'Galletas Artesanales', icon: '🍪' },
+  { id: '4', nombre: 'Postres Fríos', icon: '🍮' },
+  { id: '5', nombre: 'Panadería Dulce', icon: '🥐' },
+  { id: '6', nombre: 'Tartas y Pies', icon: '🥧' },
+];
 
-import {
-  validarNombre,
-  validarCorreo,
-  validarEdad,
-} from '../utils/validators';
-
-export default function Registro() {
-
+export default function App() {
   const [nombre, setNombre] = useState('');
-  const [correo, setCorreo] = useState('');
-  const [edad, setEdad] = useState('');
+  const [precio, setPrecio] = useState('');
+  const [categoria, setCategoria] = useState('');
+  const [stock, setStock] = useState('');
+  const [descripcion, setDescripcion] = useState('');
 
-  const [error, setError] = useState('');
-  const [registrado, setRegistrado] = useState(false);
+  const [errors, setErrors] = useState<{ [key: string]: string | null }>({});
+  const [exito, setExito] = useState<any>(null);
 
-  const nombreValido = validarNombre(nombre);
-  const correoValido = validarCorreo(correo);
-  const edadValida = validarEdad(edad);
+  const [productos, setProductos] = useState([
+    {
+      id: 'p1',
+      nombre: 'Torta Red Velvet 20cm',
+      precio: '45.00',
+      categoria: 'Pasteles y Tortas',
+      stock: '8',
+      descripcion: 'Deliciosa torta de terciopelo rojo con cobertura de queso crema.',
+    },
+    {
+      id: 'p2',
+      nombre: 'Cupcake de Arándanos',
+      precio: '6.50',
+      categoria: 'Cupcakes y Muffins',
+      stock: '24',
+      descripcion: 'Cupcake esponjoso relleno de mermelada artesanal de arándanos.',
+    },
+  ]);
 
   const validarFormulario = () => {
+    const nuevosErrores: { [key: string]: string } = {};
 
-    setError('');
-    setRegistrado(false);
-
-    if (!nombreValido) {
-      setError('Ingresa tu nombre completo.');
-      return;
+    if (!nombre.trim()) {
+      nuevosErrores.nombre = '⚠️ El nombre del producto es obligatorio.';
+    } else if (nombre.trim().length < 3) {
+      nuevosErrores.nombre = '⚠️ El nombre debe tener al menos 3 caracteres.';
     }
 
-    if (!correoValido) {
-      setError('Ingresa un correo electrónico válido.');
-      return;
+    if (!precio.trim()) {
+      nuevosErrores.precio = '⚠️ El precio es obligatorio.';
+    } else {
+      const precioNum = parseFloat(precio);
+      if (isNaN(precioNum) || precioNum <= 0) {
+        nuevosErrores.precio = '⚠️ Ingrese un precio válido mayor a 0 (Ej: 25.50).';
+      }
     }
 
-    if (!edadValida) {
-      setError('La edad debe ser de 18 años o más.');
-      return;
+    if (!categoria) {
+      nuevosErrores.categoria = '⚠️ Seleccione una categoría para el producto.';
     }
 
-    setRegistrado(true);
+    if (!stock.trim()) {
+      nuevosErrores.stock = '⚠️ El stock es obligatorio.';
+    } else {
+      const stockNum = Number(stock);
+      if (isNaN(stockNum) || !Number.isInteger(stockNum) || stockNum < 0) {
+        nuevosErrores.stock = '⚠️ El stock debe ser un número entero mayor o igual a 0.';
+      }
+    }
+
+    setErrors(nuevosErrores);
+    return Object.keys(nuevosErrores).length === 0;
+  };
+
+  const handleSubmit = () => {
+    setExito(null);
+
+    if (validarFormulario()) {
+      const nuevoProducto = {
+        id: Date.now().toString(),
+        nombre: nombre.trim(),
+        precio: parseFloat(precio).toFixed(2),
+        categoria,
+        stock: parseInt(stock, 10).toString(),
+        descripcion: descripcion.trim(),
+      };
+
+      setProductos([nuevoProducto, ...productos]);
+
+      setExito({
+        mensaje: '¡Producto registrado con éxito en el catálogo!',
+        producto: nuevoProducto,
+      });
+
+      limpiarCampos();
+    }
+  };
+
+  const limpiarCampos = () => {
+    setNombre('');
+    setPrecio('');
+    setCategoria('');
+    setStock('');
+    setDescripcion('');
+    setErrors({});
+  };
+
+  const handleNombreChange = (text: string) => {
+    setNombre(text);
+    if (errors.nombre && text.trim().length >= 3) {
+      setErrors((prev) => ({ ...prev, nombre: null }));
+    }
+  };
+
+  const handlePrecioChange = (text: string) => {
+    setPrecio(text);
+    if (errors.precio) {
+      const num = parseFloat(text);
+      if (!isNaN(num) && num > 0) {
+        setErrors((prev) => ({ ...prev, precio: null }));
+      }
+    }
+  };
+
+  const handleStockChange = (text: string) => {
+    setStock(text);
+    if (errors.stock) {
+      const num = Number(text);
+      if (!isNaN(num) && Number.isInteger(num) && num >= 0) {
+        setErrors((prev) => ({ ...prev, stock: null }));
+      }
+    }
+  };
+
+  const handleSelectCategoria = (catNombre: string) => {
+    setCategoria(catNombre);
+    if (errors.categoria) {
+      setErrors((prev) => ({ ...prev, categoria: null }));
+    }
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FDF8F5" />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-
-        {/* ENCABEZADO */}
-
-        <View style={styles.header}>
-
-          <View style={styles.headerIcon}>
-            <Text style={styles.headerIconText}>
-              +
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* HEADER PRINCIPAL DE LA PASTELERÍA */}
+          <View style={styles.header}>
+            <View style={styles.badgeContainer}>
+              <Text style={styles.badgeIcon}>🧁</Text>
+            </View>
+            <Text style={styles.headerSub}>PASTELERÍA ARTESANAL</Text>
+            <Text style={styles.headerTitle}>Registro de Producto</Text>
+            <Text style={styles.headerDescription}>
+              Complete el formulario para ingresar un nuevo dulce o pastel al inventario local.
             </Text>
           </View>
 
-          <View>
-            <Text style={styles.overline}>
-              NUEVO REGISTRO
-            </Text>
+          {/* MENSAJE DESTACADO DE ÉXITO */}
+          {exito && (
+            <View style={styles.successCard}>
+              <View style={styles.successHeader}>
+                <Text style={styles.successIcon}>🎉</Text>
+                <Text style={styles.successTitle}>{exito.mensaje}</Text>
+              </View>
+              <View style={styles.successDetails}>
+                <Text style={styles.successText}>
+                  • <Text style={styles.bold}>Producto:</Text> {exito.producto.nombre}
+                </Text>
+                <Text style={styles.successText}>
+                  • <Text style={styles.bold}>Precio:</Text> S/. {exito.producto.precio}
+                </Text>
+                <Text style={styles.successText}>
+                  • <Text style={styles.bold}>Categoría:</Text> {exito.producto.categoria}
+                </Text>
+                <Text style={styles.successText}>
+                  • <Text style={styles.bold}>Stock Disponible:</Text> {exito.producto.stock} unidades
+                </Text>
+              </View>
+              <Pressable
+                style={styles.closeSuccessButton}
+                onPress={() => setExito(null)}
+              >
+                <Text style={styles.closeSuccessText}>Cerrar Notificación</Text>
+              </Pressable>
+            </View>
+          )}
 
-            <Text style={styles.title}>
-              Crear cuenta
-            </Text>
+          {/* TARJETA DEL FORMULARIO */}
+          <View style={styles.formCard}>
+            <Text style={styles.sectionTitle}>Datos del Producto</Text>
+
+            {/* CAMPO 1: NOMBRE DEL PRODUCTO */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>
+                Nombre del Producto <Text style={styles.required}>*</Text>
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  errors.nombre ? styles.inputError : null,
+                ]}
+                placeholder="Ej. Cheesecake de Frutos Rojos"
+                placeholderTextColor="#A09893"
+                value={nombre}
+                onChangeText={handleNombreChange}
+              />
+              {errors.nombre && (
+                <Text style={styles.errorText}>{errors.nombre}</Text>
+              )}
+            </View>
+
+            {/* CAMPO 2: PRECIO (S/.) */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>
+                Precio (S/.) <Text style={styles.required}>*</Text>
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  errors.precio ? styles.inputError : null,
+                ]}
+                placeholder="Ej. 38.50"
+                placeholderTextColor="#A09893"
+                keyboardType="decimal-pad"
+                value={precio}
+                onChangeText={handlePrecioChange}
+              />
+              {errors.precio && (
+                <Text style={styles.errorText}>{errors.precio}</Text>
+              )}
+            </View>
+
+            {/* CAMPO 3: CATEGORÍA */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>
+                Categoría <Text style={styles.required}>*</Text>
+              </Text>
+              <View style={styles.categoryContainer}>
+                {CATEGORIAS.map((cat) => {
+                  const selected = categoria === cat.nombre;
+                  return (
+                    <Pressable
+                      key={cat.id}
+                      style={[
+                        styles.categoryChip,
+                        selected ? styles.categoryChipSelected : null,
+                      ]}
+                      onPress={() => handleSelectCategoria(cat.nombre)}
+                    >
+                      <Text style={styles.chipIcon}>{cat.icon}</Text>
+                      <Text
+                        style={[
+                          styles.chipText,
+                          selected ? styles.chipTextSelected : null,
+                        ]}
+                      >
+                        {cat.nombre}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {errors.categoria && (
+                <Text style={styles.errorText}>{errors.categoria}</Text>
+              )}
+            </View>
+
+            {/* CAMPO 4: STOCK */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>
+                Stock Disponible (Unidades) <Text style={styles.required}>*</Text>
+              </Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  errors.stock ? styles.inputError : null,
+                ]}
+                placeholder="Ej. 15"
+                placeholderTextColor="#A09893"
+                keyboardType="number-pad"
+                value={stock}
+                onChangeText={handleStockChange}
+              />
+              {errors.stock && (
+                <Text style={styles.errorText}>{errors.stock}</Text>
+              )}
+            </View>
+
+            {/* CAMPO OPCIONAL: DESCRIPCIÓN */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Descripción o Notas (Opcional)</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Ej. Pastel artesanal libre de gluten..."
+                placeholderTextColor="#A09893"
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+                value={descripcion}
+                onChangeText={setDescripcion}
+              />
+            </View>
+
+            {/* BOTONES DE ACCIÓN */}
+            <View style={styles.buttonRow}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.submitButton,
+                  pressed ? styles.buttonPressed : null,
+                ]}
+                onPress={handleSubmit}
+              >
+                <Text style={styles.submitButtonText}>✨ Registrar Producto</Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.resetButton,
+                  pressed ? styles.buttonPressed : null,
+                ]}
+                onPress={limpiarCampos}
+              >
+                <Text style={styles.resetButtonText}>Limpiar</Text>
+              </Pressable>
+            </View>
           </View>
 
-        </View>
-
-
-        <Text style={styles.description}>
-          Completa tus datos para crear un nuevo registro.
-        </Text>
-
-
-        {/* TARJETA DEL FORMULARIO */}
-
-        <View style={styles.formCard}>
-
-          <Text style={styles.sectionTitle}>
-            Información personal
-          </Text>
-
-          <Text style={styles.sectionDescription}>
-            Todos los campos son obligatorios.
-          </Text>
-
-
-          {/* NOMBRE */}
-
-          <AppInput
-            label="Nombre completo"
-            placeholder="Ingresa tu nombre"
-            value={nombre}
-            onChangeText={(value) => {
-              setNombre(value);
-              setError('');
-              setRegistrado(false);
-            }}
-          />
-
-          {nombre.length > 0 && (
-            <Text
-              style={[
-                styles.fieldStatus,
-                nombreValido
-                  ? styles.validText
-                  : styles.invalidText,
-              ]}
-            >
-              {nombreValido
-                ? '✓ Nombre válido'
-                : '○ Ingresa tu nombre'}
-            </Text>
-          )}
-
-
-          {/* CORREO */}
-
-          <AppInput
-            label="Correo electrónico"
-            placeholder="ejemplo@correo.com"
-            value={correo}
-            onChangeText={(value) => {
-              setCorreo(value);
-              setError('');
-              setRegistrado(false);
-            }}
-            keyboardType="email-address"
-          />
-
-          {correo.length > 0 && (
-            <Text
-              style={[
-                styles.fieldStatus,
-                correoValido
-                  ? styles.validText
-                  : styles.invalidText,
-              ]}
-            >
-              {correoValido
-                ? '✓ Correo válido'
-                : '○ Debe contener un @'}
-            </Text>
-          )}
-
-
-          {/* EDAD */}
-
-          <AppInput
-            label="Edad"
-            placeholder="Ingresa tu edad"
-            value={edad}
-            onChangeText={(value) => {
-              setEdad(value);
-              setError('');
-              setRegistrado(false);
-            }}
-            keyboardType="numeric"
-          />
-
-          {edad.length > 0 && (
-            <Text
-              style={[
-                styles.fieldStatus,
-                edadValida
-                  ? styles.validText
-                  : styles.invalidText,
-              ]}
-            >
-              {edadValida
-                ? '✓ Edad permitida'
-                : '○ Debes tener 18 años o más'}
-            </Text>
-          )}
-
-
-          {/* ERROR */}
-
-          {error !== '' && (
-            <View style={styles.errorBox}>
-
-              <View style={styles.errorIcon}>
-                <Text style={styles.errorIconText}>
-                  !
-                </Text>
+          {/* LISTADO DE PRODUCTOS REGISTRADOS */}
+          <View style={styles.listSection}>
+            <View style={styles.listHeader}>
+              <Text style={styles.listTitle}>Inventario Actual</Text>
+              <View style={styles.countBadge}>
+                <Text style={styles.countText}>{productos.length} ítems</Text>
               </View>
-
-              <View style={styles.messageContainer}>
-
-                <Text style={styles.errorTitle}>
-                  No se pudo guardar
-                </Text>
-
-                <Text style={styles.errorMessage}>
-                  {error}
-                </Text>
-
-              </View>
-
-            </View>
-          )}
-
-
-          {/* ÉXITO */}
-
-          {registrado && (
-            <View style={styles.successBox}>
-
-              <View style={styles.successIcon}>
-                <Text style={styles.successIconText}>
-                  ✓
-                </Text>
-              </View>
-
-              <View style={styles.messageContainer}>
-
-                <Text style={styles.successTitle}>
-                  ¡Registro exitoso!
-                </Text>
-
-                <Text style={styles.successMessage}>
-                  Todos los datos son válidos.
-                </Text>
-
-              </View>
-
-            </View>
-          )}
-
-
-          {/* BOTÓN */}
-
-          <AppButton
-            title="Guardar datos"
-            onPress={validarFormulario}
-          />
-
-        </View>
-
-
-        {/* VALIDACIONES */}
-
-        <View style={styles.validationSection}>
-
-          <View style={styles.validationHeader}>
-
-            <View>
-              <Text style={styles.validationTitle}>
-                Validaciones
-              </Text>
-
-              <Text style={styles.validationSubtitle}>
-                Reglas aplicadas al formulario
-              </Text>
             </View>
 
-            <View style={styles.counter}>
-
-              <Text style={styles.counterText}>
-                {
-                  [
-                    nombreValido,
-                    correoValido,
-                    edadValida,
-                  ].filter(Boolean).length
-                }/3
-              </Text>
-
-            </View>
-
+            {productos.map((prod) => (
+              <View key={prod.id} style={styles.productCard}>
+                <View style={styles.productCardHeader}>
+                  <Text style={styles.productName}>{prod.nombre}</Text>
+                  <Text style={styles.productPrice}>S/. {prod.precio}</Text>
+                </View>
+                <View style={styles.productDetailsRow}>
+                  <View style={styles.tagCategory}>
+                    <Text style={styles.tagCategoryText}>{prod.categoria}</Text>
+                  </View>
+                  <Text style={styles.productStock}>Stock: {prod.stock} unids.</Text>
+                </View>
+                {prod.descripcion ? (
+                  <Text style={styles.productDesc}>{prod.descripcion}</Text>
+                ) : null}
+              </View>
+            ))}
           </View>
-
-
-          {/* VALIDACIÓN 1 */}
-
-          <ValidationRow
-            title="Nombre obligatorio"
-            description="El campo no puede estar vacío."
-            valid={nombreValido}
-          />
-
-
-          {/* VALIDACIÓN 2 */}
-
-          <ValidationRow
-            title="Correo electrónico"
-            description="Debe contener un formato válido."
-            valid={correoValido}
-          />
-
-
-          {/* VALIDACIÓN 3 */}
-
-          <ValidationRow
-            title="Edad mínima"
-            description="La edad debe ser igual o mayor a 18."
-            valid={edadValida}
-          />
-
-        </View>
-
-
-        {/* PIE */}
-
-        <Text style={styles.footer}>
-          Ejemplo de formulario con validaciones
-        </Text>
-
-      </ScrollView>
-
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
-
-
-/* COMPONENTE PARA LAS VALIDACIONES */
-
-type ValidationRowProps = {
-  title: string;
-  description: string;
-  valid: boolean;
-};
-
-function ValidationRow({
-  title,
-  description,
-  valid,
-}: ValidationRowProps) {
-
-  return (
-    <View style={styles.validationRow}>
-
-      <View
-        style={[
-          styles.validationCircle,
-          valid
-            ? styles.validationCircleValid
-            : styles.validationCirclePending,
-        ]}
-      >
-
-        <Text
-          style={[
-            styles.validationIcon,
-            valid
-              ? styles.validationIconValid
-              : styles.validationIconPending,
-          ]}
-        >
-          {valid ? '✓' : '○'}
-        </Text>
-
-      </View>
-
-
-      <View style={styles.validationInfo}>
-
-        <Text style={styles.validationRowTitle}>
-          {title}
-        </Text>
-
-        <Text style={styles.validationRowDescription}>
-          {description}
-        </Text>
-
-      </View>
-
-
-      <View
-        style={[
-          styles.statusBadge,
-          valid
-            ? styles.statusBadgeValid
-            : styles.statusBadgePending,
-        ]}
-      >
-
-        <Text
-          style={[
-            styles.statusBadgeText,
-            valid
-              ? styles.statusBadgeTextValid
-              : styles.statusBadgeTextPending,
-          ]}
-        >
-          {valid ? 'OK' : 'Pendiente'}
-        </Text>
-
-      </View>
-
-    </View>
-  );
-}
-
-
-/* ESTILOS */
 
 const styles = StyleSheet.create({
-
-  container: {
+  flex: {
     flex: 1,
-    backgroundColor: '#F5F7FB',
   },
-
-  scroll: {
-    padding: 20,
-    paddingTop: 45,
-    paddingBottom: 35,
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#FDF8F5',
   },
-
-
-  /* HEADER */
-
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'android' ? 24 : 12,
+    paddingBottom: 40,
+  },
   header: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  badgeContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFEBF0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    shadowColor: '#C2185B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  badgeIcon: {
+    fontSize: 32,
+  },
+  headerSub: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#D81B60',
+    letterSpacing: 2,
+    marginBottom: 4,
+  },
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#3E2723',
+    marginBottom: 6,
+  },
+  headerDescription: {
+    fontSize: 14,
+    color: '#6D4C41',
+    textAlign: 'center',
+    paddingHorizontal: 10,
+    lineHeight: 20,
+  },
+  successCard: {
+    backgroundColor: '#E8F5E9',
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1.5,
+    borderColor: '#4CAF50',
+    marginBottom: 20,
+    shadowColor: '#2E7D32',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  successHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
   },
-
-  headerIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 16,
-    backgroundColor: '#4F46E5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
+  successIcon: {
+    fontSize: 22,
+    marginRight: 8,
   },
-
-  headerIconText: {
-    color: '#FFFFFF',
-    fontSize: 28,
-    fontWeight: '300',
+  successTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1B5E20',
+    flex: 1,
   },
-
-  overline: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#6366F1',
-    letterSpacing: 1.5,
-    marginBottom: 3,
-  },
-
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#172033',
-  },
-
-  description: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: '#667085',
-    marginBottom: 24,
-  },
-
-
-  /* FORMULARIO */
-
-  formCard: {
+  successDetails: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 22,
-    borderWidth: 1,
-    borderColor: '#E8EBF0',
-    marginBottom: 20,
+    borderRadius: 10,
+    padding: 12,
+    marginVertical: 6,
   },
-
-  sectionTitle: {
-    fontSize: 19,
-    fontWeight: '800',
-    color: '#172033',
+  successText: {
+    fontSize: 14,
+    color: '#2E7D32',
     marginBottom: 4,
   },
-
-  sectionDescription: {
-    fontSize: 13,
-    color: '#98A2B3',
-    marginBottom: 22,
+  bold: {
+    fontWeight: 'bold',
   },
-
-
-  /* ESTADO DE CAMPOS */
-
-  fieldStatus: {
-    fontSize: 11,
+  closeSuccessButton: {
+    alignSelf: 'flex-end',
+    marginTop: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  closeSuccessText: {
+    fontSize: 13,
+    color: '#1B5E20',
     fontWeight: '600',
-    marginTop: -10,
+    textDecorationLine: 'underline',
+  },
+  formCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#3E2723',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#3E2723',
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3E5F5',
+    paddingBottom: 8,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4E342E',
+    marginBottom: 6,
+  },
+  required: {
+    color: '#D32F2F',
+    fontWeight: 'bold',
+  },
+  input: {
+    backgroundColor: '#FAFAFA',
+    borderWidth: 1.5,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#3E2723',
+  },
+  inputError: {
+    borderColor: '#D32F2F',
+    backgroundColor: '#FFEBEE',
+  },
+  textArea: {
+    height: 80,
+  },
+  errorText: {
+    color: '#D32F2F',
+    fontSize: 13,
+    marginTop: 5,
+    fontWeight: '500',
+  },
+  categoryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1.5,
+    borderColor: '#E0E0E0',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  categoryChipSelected: {
+    backgroundColor: '#FCE4EC',
+    borderColor: '#D81B60',
+  },
+  chipIcon: {
+    fontSize: 14,
+    marginRight: 6,
+  },
+  chipText: {
+    fontSize: 13,
+    color: '#616161',
+    fontWeight: '500',
+  },
+  chipTextSelected: {
+    color: '#C2185B',
+    fontWeight: '700',
+  },
+  buttonRow: {
+    flexDirection: 'column',
+    gap: 10,
+    marginTop: 10,
+  },
+  submitButton: {
+    backgroundColor: '#D81B60',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    shadowColor: '#D81B60',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  resetButton: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  resetButtonText: {
+    color: '#757575',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  buttonPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.98 }],
+  },
+  listSection: {
+    marginTop: 8,
+  },
+  listHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 14,
   },
-
-  validText: {
-    color: '#16A34A',
+  listTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#3E2723',
   },
-
-  invalidText: {
-    color: '#D97706',
+  countBadge: {
+    backgroundColor: '#E0F2F1',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-
-
-  /* ERROR */
-
-  errorBox: {
-    flexDirection: 'row',
-    backgroundColor: '#FFF5F5',
-    borderRadius: 14,
-    padding: 13,
-    marginBottom: 17,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-
-  errorIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FEE2E2',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 11,
-  },
-
-  errorIconText: {
-    color: '#DC2626',
-    fontSize: 17,
-    fontWeight: '800',
-  },
-
-  messageContainer: {
-    flex: 1,
-  },
-
-  errorTitle: {
-    color: '#991B1B',
-    fontSize: 13,
-    fontWeight: '800',
-    marginBottom: 2,
-  },
-
-  errorMessage: {
-    color: '#B42318',
+  countText: {
     fontSize: 12,
-    lineHeight: 17,
+    fontWeight: 'bold',
+    color: '#00796B',
   },
-
-
-  /* ÉXITO */
-
-  successBox: {
-    flexDirection: 'row',
-    backgroundColor: '#F0FDF4',
-    borderRadius: 14,
-    padding: 13,
-    marginBottom: 17,
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-  },
-
-  successIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#DCFCE7',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 11,
-  },
-
-  successIconText: {
-    color: '#16A34A',
-    fontSize: 17,
-    fontWeight: '800',
-  },
-
-  successTitle: {
-    color: '#166534',
-    fontSize: 13,
-    fontWeight: '800',
-    marginBottom: 2,
-  },
-
-  successMessage: {
-    color: '#15803D',
-    fontSize: 12,
-  },
-
-
-  /* VALIDACIONES */
-
-  validationSection: {
+  productCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    padding: 22,
-    borderWidth: 1,
-    borderColor: '#E8EBF0',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+    borderLeftWidth: 4,
+    borderLeftColor: '#D81B60',
   },
-
-  validationHeader: {
+  productCardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-
-  validationTitle: {
-    fontSize: 19,
-    fontWeight: '800',
-    color: '#172033',
-    marginBottom: 3,
-  },
-
-  validationSubtitle: {
-    fontSize: 12,
-    color: '#98A2B3',
-  },
-
-  counter: {
-    width: 45,
-    height: 45,
-    borderRadius: 14,
-    backgroundColor: '#EEF2FF',
     alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: 6,
   },
-
-  counterText: {
-    color: '#4F46E5',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-
-
-  /* FILAS */
-
-  validationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 13,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F2F5',
-  },
-
-  validationCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-
-  validationCircleValid: {
-    backgroundColor: '#DCFCE7',
-  },
-
-  validationCirclePending: {
-    backgroundColor: '#F3F4F6',
-  },
-
-  validationIcon: {
-    fontSize: 17,
-    fontWeight: '800',
-  },
-
-  validationIconValid: {
-    color: '#16A34A',
-  },
-
-  validationIconPending: {
-    color: '#98A2B3',
-  },
-
-  validationInfo: {
+  productName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#3E2723',
     flex: 1,
+    marginRight: 8,
   },
-
-  validationRowTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#344054',
-    marginBottom: 3,
+  productPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#D81B60',
   },
-
-  validationRowDescription: {
-    fontSize: 11,
-    color: '#98A2B3',
-    lineHeight: 16,
+  productDetailsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
   },
-
-  statusBadge: {
+  tagCategory: {
+    backgroundColor: '#F3E5F5',
     paddingHorizontal: 8,
-    paddingVertical: 5,
+    paddingVertical: 3,
     borderRadius: 8,
-    marginLeft: 8,
   },
-
-  statusBadgeValid: {
-    backgroundColor: '#ECFDF3',
+  tagCategoryText: {
+    fontSize: 12,
+    color: '#7B1FA2',
+    fontWeight: '600',
   },
-
-  statusBadgePending: {
-    backgroundColor: '#F2F4F7',
+  productStock: {
+    fontSize: 13,
+    color: '#616161',
+    fontWeight: '500',
   },
-
-  statusBadgeText: {
-    fontSize: 9,
-    fontWeight: '800',
+  productDesc: {
+    fontSize: 13,
+    color: '#757575',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
-
-  statusBadgeTextValid: {
-    color: '#027A48',
-  },
-
-  statusBadgeTextPending: {
-    color: '#667085',
-  },
-
-
-  /* FOOTER */
-
-  footer: {
-    textAlign: 'center',
-    fontSize: 11,
-    color: '#98A2B3',
-    marginTop: 22,
-  },
-
 });
